@@ -1,8 +1,9 @@
 all: index.html
 
-index.html: template.revealjs slides.md override.css
+index.html: template.revealjs slides.md
 	pandoc -t revealjs \
 		--standalone \
+		--self-contained \
 		--filter filter/dot.hs \
 		--no-highlight \
 		--css override.css \

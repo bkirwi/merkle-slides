@@ -19,8 +19,6 @@ graphViz (CodeBlock attrs@(ident, classes, pairs) text) | "dot" `elem` classes =
   let rankdir = fromMaybe "TB" $ lookup "rankdir" pairs
       options =
         [ "-Tsvg"
-        , "-Efontname=\"\""
-        , "-Nfontname=\"\""
         , "-Earrowsize=0.8"
         , "-Grankdir=" <> rankdir
         ]
@@ -37,6 +35,7 @@ stripStyle = renderTags . map go . parseTags
     go x = x
     fixAttr ("fill", _) = False
     fixAttr ("stroke", _) = False
+    fixAttr ("font-family", _) = False
     fixAttr x = True
 
 main :: IO ()
