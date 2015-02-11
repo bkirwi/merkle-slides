@@ -3,33 +3,15 @@
 <head>
   <meta charset="utf-8">
   <meta name="generator" content="pandoc">
-  <title></title>
+  <meta name="author" content="Ben Kirwin" />
+  <title>Growing a Merkle Tree</title>
   <meta name="apple-mobile-web-app-capable" content="yes" />
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
   <link rel="stylesheet" href="reveal.js/css/reveal.css"/>
     <style type="text/css">code{white-space: pre;}</style>
-    <style type="text/css">
-table.sourceCode, tr.sourceCode, td.lineNumbers, td.sourceCode {
-  margin: 0; padding: 0; vertical-align: baseline; border: none; }
-table.sourceCode { width: 100%; line-height: 100%; }
-td.lineNumbers { text-align: right; padding-right: 4px; padding-left: 4px; color: #aaaaaa; border-right: 1px solid #aaaaaa; }
-td.sourceCode { padding-left: 5px; }
-code > span.kw { color: #007020; font-weight: bold; }
-code > span.dt { color: #902000; }
-code > span.dv { color: #40a070; }
-code > span.bn { color: #40a070; }
-code > span.fl { color: #40a070; }
-code > span.ch { color: #4070a0; }
-code > span.st { color: #4070a0; }
-code > span.co { color: #60a0b0; font-style: italic; }
-code > span.ot { color: #007020; }
-code > span.al { color: #ff0000; font-weight: bold; }
-code > span.fu { color: #06287e; }
-code > span.er { color: #ff0000; font-weight: bold; }
-    </style>
-    <link rel="stylesheet" href="reveal.js/css/theme/simple.css" id="theme">
-    <link rel="stylesheet" href="reveal.js/css/theme/black.css" id="theme">
+    <link rel="stylesheet" href="override.css"/>
+    <link rel="stylesheet" href="reveal.js/css/theme/moon.css" id="theme">
     <!-- If the query includes 'print-pdf', include the PDF print sheet -->
     <script>
       if( window.location.search.match( /print-pdf/gi ) ) {
@@ -48,11 +30,593 @@ code > span.er { color: #ff0000; font-weight: bold; }
   <div class="reveal">
     <div class="slides">
 
+<section>
+    <h1 class="title">Growing a Merkle Tree</h1>
+    <h2 class="author">Ben Kirwin</h2>
+    <h3 class="date"></h3>
+</section>
 
-<section><section id="testing" class="titleslide slide level1"><h1>Testing</h1></section><section id="hope-this-goes-well" class="slide level2">
-<h1>Hope this goes well</h1>
-<p>No idea!</p>
-<pre class="sourceCode dot"><code class="sourceCode dot"></code></pre>
+<section><section id="background" class="titleslide slide level1"><h1>Background</h1></section><section id="ethereum" class="slide level2">
+<h1>Ethereum</h1>
+<blockquote>
+<p>Ethereum is a platform and a programming language that makes it possible for any developer to build and publish next-generation distributed applications.</p>
+<p>Ether, Ethereum's cryptofuel, powers the applications on the decentralized network.</p>
+</blockquote>
+<p>http://ethereum.org</p>
+</section><section id="ethereum-haskell" class="slide level2">
+<h1>ethereum-haskell</h1>
+<blockquote>
+<p>An independent, unaffiliated, and incomplete reimplementation of Ethereum in Haskell.</p>
+</blockquote>
+<p>https://github.com/bkirwi/ethereum-haskell</p>
+<p>http://ben.kirw.in</p>
+</section></section>
+<section><section id="mappings-and-tries" class="titleslide slide level1"><h1>Mappings and Tries</h1></section><section id="setup" class="slide level2">
+<h1>Setup</h1>
+<pre class="haskell"><code>import Data.ByteString
+import Ethereum.Word4
+
+type Key = [Word4] -- hexadecimal digits
+type Value = ByteString
+
+empty = ByteString.empty</code></pre>
+</section><section id="association-list" class="slide level2">
+<h1>Association List</h1>
+<svg width="436pt" height="116pt" viewBox="0.00 0.00 435.94 116.00" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
+<g id="graph0" class="graph" transform="scale(1 1) rotate(0) translate(4 112)">
+<title>pairs</title>
+<polygon points="-4,4 -4,-112 431.942,-112 431.942,4 -4,4"></polygon>
+<!-- CAFE -->
+<g id="node1" class="node"><title>CAFE</title>
+<polygon points="72.6459,-108 19.6459,-108 19.6459,-72 72.6459,-72 72.6459,-108"></polygon>
+<text text-anchor="middle" x="46.1459" y="-86.3" font-family "" font-size="14.00">CAFE</text>
+</g>
+<!-- 124AFE -->
+<g id="node5" class="node"><title>124AFE</title>
+<ellipse cx="46.1459" cy="-18" rx="46.2923" ry="18"></ellipse>
+<text text-anchor="middle" x="46.1459" y="-14.3" font-family "" font-size="14.00">124AFE</text>
+</g>
+<!-- CAFE&#45;&gt;124AFE -->
+<g id="edge1" class="edge"><title>CAFE-&gt;124AFE</title>
+<path d="M46.1459,-71.6966C46.1459,-63.3893 46.1459,-53.2771 46.1459,-44.1407"></path>
+<polygon points="48.946,-44.1043 46.1459,-36.1043 43.346,-44.1044 48.946,-44.1043"></polygon>
+</g>
+<!-- C0D -->
+<g id="node2" class="node"><title>C0D</title>
+<polygon points="180.646,-108 133.646,-108 133.646,-72 180.646,-72 180.646,-108"></polygon>
+<text text-anchor="middle" x="157.146" y="-86.3" font-family "" font-size="14.00">C0D</text>
+</g>
+<!-- A374C8 -->
+<g id="node6" class="node"><title>A374C8</title>
+<ellipse cx="157.146" cy="-18" rx="46.5926" ry="18"></ellipse>
+<text text-anchor="middle" x="157.146" y="-14.3" font-family "" font-size="14.00">A374C8</text>
+</g>
+<!-- C0D&#45;&gt;A374C8 -->
+<g id="edge2" class="edge"><title>C0D-&gt;A374C8</title>
+<path d="M157.146,-71.6966C157.146,-63.3893 157.146,-53.2771 157.146,-44.1407"></path>
+<polygon points="159.946,-44.1043 157.146,-36.1043 154.346,-44.1044 159.946,-44.1043"></polygon>
+</g>
+<!-- C0DE -->
+<g id="node3" class="node"><title>C0DE</title>
+<polygon points="297.146,-108 241.146,-108 241.146,-72 297.146,-72 297.146,-108"></polygon>
+<text text-anchor="middle" x="269.146" y="-86.3" font-family "" font-size="14.00">C0DE</text>
+</g>
+<!-- 04D21E -->
+<g id="node7" class="node"><title>04D21E</title>
+<ellipse cx="269.146" cy="-18" rx="47.3916" ry="18"></ellipse>
+<text text-anchor="middle" x="269.146" y="-14.3" font-family "" font-size="14.00">04D21E</text>
+</g>
+<!-- C0DE&#45;&gt;04D21E -->
+<g id="edge3" class="edge"><title>C0DE-&gt;04D21E</title>
+<path d="M269.146,-71.6966C269.146,-63.3893 269.146,-53.2771 269.146,-44.1407"></path>
+<polygon points="271.946,-44.1043 269.146,-36.1043 266.346,-44.1044 271.946,-44.1043"></polygon>
+</g>
+<!-- F00D -->
+<g id="node4" class="node"><title>F00D</title>
+<polygon points="408.146,-108 354.146,-108 354.146,-72 408.146,-72 408.146,-108"></polygon>
+<text text-anchor="middle" x="381.146" y="-86.3" font-family "" font-size="14.00">F00D</text>
+</g>
+<!-- F4D71E -->
+<g id="node8" class="node"><title>F4D71E</title>
+<ellipse cx="381.146" cy="-18" rx="46.5926" ry="18"></ellipse>
+<text text-anchor="middle" x="381.146" y="-14.3" font-family "" font-size="14.00">F4D71E</text>
+</g>
+<!-- F00D&#45;&gt;F4D71E -->
+<g id="edge4" class="edge"><title>F00D-&gt;F4D71E</title>
+<path d="M381.146,-71.6966C381.146,-63.3893 381.146,-53.2771 381.146,-44.1407"></path>
+<polygon points="383.946,-44.1043 381.146,-36.1043 378.346,-44.1044 383.946,-44.1043"></polygon>
+</g>
+</g>
+</svg>
+
+</section><section id="association-list-1" class="slide level2">
+<h1>Association List</h1>
+<pre class="haskell"><code>type AssocList = [(Key, ByteString)]</code></pre>
+<div class="fragment">
+<pre class="haskell"><code>lookup :: Key -&gt; AssocList -&gt; Value
+lookup key = fromMaybe empty . lookup key</code></pre>
+</div>
+<div class="fragment">
+<pre class="haskell"><code>update :: Key -&gt; Value -&gt; AssocList -&gt; AssocList
+update key value list = (key, value) : list -- grows forever!
+</code></pre>
+</div>
+<div class="fragment">
+<pre class="haskell"><code>update key empty list -- == ???</code></pre>
+</div>
+</section><section id="trie" class="slide level2">
+<h1>Trie</h1>
+<svg width="525pt" height="206pt" viewBox="0.00 0.00 525.48 206.00" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
+<g id="graph0" class="graph" transform="scale(1 1) rotate(0) translate(4 202)">
+<title>trie</title>
+<polygon points="-4,4 -4,-202 521.483,-202 521.483,4 -4,4"></polygon>
+<!-- &lt;root&gt; -->
+<g id="node1" class="node"><title>&lt;root&gt;</title>
+<polygon points="69,-86 -5.68434e-14,-86 -5.68434e-14,-50 69,-50 69,-86"></polygon>
+<text text-anchor="middle" x="34.5" y="-64.3" font-family "" font-size="14.00">&lt;root&gt;</text>
+</g>
+<!-- C -->
+<g id="node2" class="node"><title>C</title>
+<text text-anchor="middle" x="118" y="-98.3" font-family "" font-size="14.00">C</text>
+</g>
+<!-- &lt;root&gt;&#45;&gt;C -->
+<g id="edge1" class="edge"><title>&lt;root&gt;-&gt;C</title>
+<path d="M69.1197,-82.0254C78.6895,-86.0177 88.8008,-90.2359 97.253,-93.762"></path>
+<polygon points="96.3152,-96.4046 104.777,-96.9007 98.4714,-91.2363 96.3152,-96.4046"></polygon>
+</g>
+<!-- F1 -->
+<g id="node9" class="node"><title>F1</title>
+<text text-anchor="middle" x="118" y="-31.3" font-family "" font-size="14.00">F</text>
+</g>
+<!-- &lt;root&gt;&#45;&gt;F1 -->
+<g id="edge11" class="edge"><title>&lt;root&gt;-&gt;F1</title>
+<path d="M69.1197,-54.3871C78.8224,-50.4584 89.0818,-46.3043 97.6043,-42.8535"></path>
+<polygon points="98.8039,-45.3886 105.168,-39.7908 96.7022,-40.198 98.8039,-45.3886"></polygon>
+</g>
+<!-- A -->
+<g id="node3" class="node"><title>A</title>
+<text text-anchor="middle" x="180" y="-159.3" font-family "" font-size="14.00">A</text>
+</g>
+<!-- C&#45;&gt;A -->
+<g id="edge2" class="edge"><title>C-&gt;A</title>
+<path d="M131.142,-114.344C139.762,-123.108 151.476,-135.017 161.157,-144.86"></path>
+<polygon points="159.27,-146.934 166.876,-150.674 163.262,-143.007 159.27,-146.934"></polygon>
+</g>
+<!-- O -->
+<g id="node6" class="node"><title>O</title>
+<text text-anchor="middle" x="180" y="-98.3" font-family "" font-size="14.00">0</text>
+</g>
+<!-- C&#45;&gt;O -->
+<g id="edge6" class="edge"><title>C-&gt;O</title>
+<path d="M131.142,-102C139.031,-102 149.509,-102 158.65,-102"></path>
+<polygon points="158.876,-104.8 166.876,-102 158.876,-99.2001 158.876,-104.8"></polygon>
+</g>
+<!-- F -->
+<g id="node4" class="node"><title>F</title>
+<text text-anchor="middle" x="243" y="-172.3" font-family "" font-size="14.00">F</text>
+</g>
+<!-- A&#45;&gt;F -->
+<g id="edge3" class="edge"><title>A-&gt;F</title>
+<path d="M193.052,-165.568C201.43,-167.354 212.784,-169.774 222.448,-171.833"></path>
+<polygon points="221.979,-174.596 230.387,-173.525 223.147,-169.119 221.979,-174.596"></polygon>
+</g>
+<!-- E -->
+<g id="node5" class="node"><title>E</title>
+<text text-anchor="middle" x="339.796" y="-176.3" font-family "" font-size="14.00">E</text>
+</g>
+<!-- F&#45;&gt;E -->
+<g id="edge4" class="edge"><title>F-&gt;E</title>
+<path d="M255.624,-176.49C271.316,-177.153 299.514,-178.342 318.683,-179.151"></path>
+<polygon points="318.667,-181.953 326.778,-179.493 318.903,-176.358 318.667,-181.953"></polygon>
+</g>
+<!-- 124AFE -->
+<g id="node13" class="node"><title>124AFE</title>
+<ellipse cx="470.037" cy="-180" rx="46.2923" ry="18"></ellipse>
+<text text-anchor="middle" x="470.037" y="-176.3" font-family "" font-size="14.00">124AFE</text>
+</g>
+<!-- E&#45;&gt;124AFE -->
+<g id="edge5" class="edge"><title>E-&gt;124AFE</title>
+<path d="M353.092,-180C367.561,-180 392.544,-180 415.623,-180"></path>
+<polygon points="415.686,-182.8 423.686,-180 415.686,-177.2 415.686,-182.8"></polygon>
+</g>
+<!-- D -->
+<g id="node7" class="node"><title>D</title>
+<text text-anchor="middle" x="243" y="-98.3" font-family "" font-size="14.00">D</text>
+</g>
+<!-- O&#45;&gt;D -->
+<g id="edge7" class="edge"><title>O-&gt;D</title>
+<path d="M193.052,-102C200.92,-102 211.413,-102 220.665,-102"></path>
+<polygon points="220.703,-104.8 228.703,-102 220.703,-99.2001 220.703,-104.8"></polygon>
+</g>
+<!-- E1 -->
+<g id="node8" class="node"><title>E1</title>
+<text text-anchor="middle" x="339.796" y="-122.3" font-family "" font-size="14.00">E</text>
+</g>
+<!-- D&#45;&gt;E1 -->
+<g id="edge9" class="edge"><title>D-&gt;E1</title>
+<path d="M257.181,-105.337C273.151,-109.38 300.219,-116.233 318.772,-120.931"></path>
+<polygon points="318.185,-123.67 326.627,-122.919 319.559,-118.241 318.185,-123.67"></polygon>
+</g>
+<!-- A374C8 -->
+<g id="node14" class="node"><title>A374C8</title>
+<ellipse cx="339.796" cy="-72" rx="46.5926" ry="18"></ellipse>
+<text text-anchor="middle" x="339.796" y="-68.3" font-family "" font-size="14.00">A374C8</text>
+</g>
+<!-- D&#45;&gt;A374C8 -->
+<g id="edge8" class="edge"><title>D-&gt;A374C8</title>
+<path d="M257.181,-97.8286C267.047,-94.7062 281.149,-90.2435 294.862,-85.9037"></path>
+<polygon points="296.074,-88.4571 302.856,-83.3738 294.384,-83.1181 296.074,-88.4571"></polygon>
+</g>
+<!-- 04D21E -->
+<g id="node15" class="node"><title>04D21E</title>
+<ellipse cx="470.037" cy="-126" rx="47.3916" ry="18"></ellipse>
+<text text-anchor="middle" x="470.037" y="-122.3" font-family "" font-size="14.00">04D21E</text>
+</g>
+<!-- E1&#45;&gt;04D21E -->
+<g id="edge10" class="edge"><title>E1-&gt;04D21E</title>
+<path d="M353.092,-126C367.274,-126 391.558,-126 414.249,-126"></path>
+<polygon points="414.516,-128.8 422.515,-126 414.515,-123.2 414.516,-128.8"></polygon>
+</g>
+<!-- O1 -->
+<g id="node10" class="node"><title>O1</title>
+<text text-anchor="middle" x="180" y="-24.3" font-family "" font-size="14.00">0</text>
+</g>
+<!-- F1&#45;&gt;O1 -->
+<g id="edge12" class="edge"><title>F1-&gt;O1</title>
+<path d="M130.569,-33.6503C138.495,-32.7256 149.223,-31.474 158.568,-30.3838"></path>
+<polygon points="159.019,-33.1502 166.641,-29.4419 158.37,-27.5879 159.019,-33.1502"></polygon>
+</g>
+<!-- O2 -->
+<g id="node11" class="node"><title>O2</title>
+<text text-anchor="middle" x="243" y="-17.3" font-family "" font-size="14.00">0</text>
+</g>
+<!-- O1&#45;&gt;O2 -->
+<g id="edge13" class="edge"><title>O1-&gt;O2</title>
+<path d="M193.052,-26.617C201.239,-25.6775 212.268,-24.4118 221.784,-23.3198"></path>
+<polygon points="222.345,-26.074 229.973,-22.3801 221.706,-20.5105 222.345,-26.074"></polygon>
+</g>
+<!-- D1 -->
+<g id="node12" class="node"><title>D1</title>
+<text text-anchor="middle" x="339.796" y="-14.3" font-family "" font-size="14.00">D</text>
+</g>
+<!-- O2&#45;&gt;D1 -->
+<g id="edge14" class="edge"><title>O2-&gt;D1</title>
+<path d="M256.006,-20.62C271.473,-20.1306 298.622,-19.2714 317.599,-18.6708"></path>
+<polygon points="317.765,-21.4671 325.672,-18.4153 317.588,-15.8699 317.765,-21.4671"></polygon>
+</g>
+<!-- F4D71E -->
+<g id="node16" class="node"><title>F4D71E</title>
+<ellipse cx="470.037" cy="-18" rx="46.5926" ry="18"></ellipse>
+<text text-anchor="middle" x="470.037" y="-14.3" font-family "" font-size="14.00">F4D71E</text>
+</g>
+<!-- D1&#45;&gt;F4D71E -->
+<g id="edge15" class="edge"><title>D1-&gt;F4D71E</title>
+<path d="M354.037,-18C368.457,-18 392.458,-18 414.815,-18"></path>
+<polygon points="414.956,-20.8001 422.956,-18 414.956,-15.2001 414.956,-20.8001"></polygon>
+</g>
+</g>
+</svg>
+
+</section><section id="trie-1" class="slide level2">
+<h1>Trie</h1>
+<pre class="haskell"><code>data Trie
+  = Branch [Trie] ByteString
+  | Empty
+
+lookup :: Trie -&gt; Key -&gt; Value
+lookup Empty _ = &quot;&quot;
+lookup (Branch _ value) [] = value
+lookup (Branch children _) (char : rest) =
+  let child = genericIndex children char
+  in lookup child rest</code></pre>
+</section><section id="patricia-trie" class="slide level2">
+<h1>Patricia Trie</h1>
+<svg width="557pt" height="152pt" viewBox="0.00 0.00 557.07 152.00" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
+<g id="graph0" class="graph" transform="scale(1 1) rotate(0) translate(4 148)">
+<title>patricia</title>
+<polygon points="-4,4 -4,-148 553.075,-148 553.075,4 -4,4"></polygon>
+<!-- &lt;root&gt; -->
+<g id="node1" class="node"><title>&lt;root&gt;</title>
+<polygon points="69,-63 0,-63 0,-27 69,-27 69,-63"></polygon>
+<text text-anchor="middle" x="34.5" y="-41.3" font-family "" font-size="14.00">&lt;root&gt;</text>
+</g>
+<!-- C -->
+<g id="node2" class="node"><title>C</title>
+<text text-anchor="middle" x="132" y="-68.3" font-family "" font-size="14.00">C</text>
+</g>
+<!-- &lt;root&gt;&#45;&gt;C -->
+<g id="edge1" class="edge"><title>&lt;root&gt;-&gt;C</title>
+<path d="M69.1697,-54.5192C83.132,-58.4667 98.8583,-62.9128 110.956,-66.3332"></path>
+<polygon points="110.226,-69.0365 118.686,-68.5186 111.75,-63.6477 110.226,-69.0365"></polygon>
+</g>
+<!-- F00D -->
+<g id="node6" class="node"><title>F00D</title>
+<text text-anchor="middle" x="132" y="-14.3" font-family "" font-size="14.00">F00D</text>
+</g>
+<!-- &lt;root&gt;&#45;&gt;F00D -->
+<g id="edge8" class="edge"><title>&lt;root&gt;-&gt;F00D</title>
+<path d="M69.1697,-35.4808C78.2243,-32.9209 88.0206,-30.1512 97.0882,-27.5876"></path>
+<polygon points="97.8957,-30.2692 104.832,-25.3982 96.3721,-24.8804 97.8957,-30.2692"></polygon>
+</g>
+<!-- AFE -->
+<g id="node3" class="node"><title>AFE</title>
+<text text-anchor="middle" x="241.796" y="-122.3" font-family "" font-size="14.00">AFE</text>
+</g>
+<!-- C&#45;&gt;AFE -->
+<g id="edge2" class="edge"><title>C-&gt;AFE</title>
+<path d="M145.366,-78.1945C161.591,-86.3228 190.56,-100.834 212.337,-111.744"></path>
+<polygon points="211.301,-114.356 219.708,-115.436 213.809,-109.349 211.301,-114.356"></polygon>
+</g>
+<!-- OD -->
+<g id="node4" class="node"><title>OD</title>
+<text text-anchor="middle" x="241.796" y="-68.3" font-family "" font-size="14.00">0D</text>
+</g>
+<!-- C&#45;&gt;OD -->
+<g id="edge4" class="edge"><title>C-&gt;OD</title>
+<path d="M145.366,-72C162.258,-72 192.96,-72 214.982,-72"></path>
+<polygon points="215.24,-74.8001 223.24,-72 215.24,-69.2001 215.24,-74.8001"></polygon>
+</g>
+<!-- 124AFE -->
+<g id="node7" class="node"><title>124AFE</title>
+<ellipse cx="371.388" cy="-126" rx="46.2923" ry="18"></ellipse>
+<text text-anchor="middle" x="371.388" y="-122.3" font-family "" font-size="14.00">124AFE</text>
+</g>
+<!-- AFE&#45;&gt;124AFE -->
+<g id="edge3" class="edge"><title>AFE-&gt;124AFE</title>
+<path d="M263.865,-126C278.354,-126 298.286,-126 316.991,-126"></path>
+<polygon points="317.193,-128.8 325.193,-126 317.193,-123.2 317.193,-128.8"></polygon>
+</g>
+<!-- E1 -->
+<g id="node5" class="node"><title>E1</title>
+<text text-anchor="middle" x="371.388" y="-68.3" font-family "" font-size="14.00">E</text>
+</g>
+<!-- OD&#45;&gt;E1 -->
+<g id="edge6" class="edge"><title>OD-&gt;E1</title>
+<path d="M260.537,-72C283.955,-72 325.101,-72 349.843,-72"></path>
+<polygon points="350.154,-74.8001 358.154,-72 350.153,-69.2001 350.154,-74.8001"></polygon>
+</g>
+<!-- A374C8 -->
+<g id="node8" class="node"><title>A374C8</title>
+<ellipse cx="371.388" cy="-18" rx="46.5926" ry="18"></ellipse>
+<text text-anchor="middle" x="371.388" y="-14.3" font-family "" font-size="14.00">A374C8</text>
+</g>
+<!-- OD&#45;&gt;A374C8 -->
+<g id="edge5" class="edge"><title>OD-&gt;A374C8</title>
+<path d="M260.537,-64.4915C278.826,-56.7512 307.928,-44.4345 331.584,-34.4227"></path>
+<polygon points="332.777,-36.9584 339.053,-31.2617 330.594,-31.8013 332.777,-36.9584"></polygon>
+</g>
+<!-- 04D21E -->
+<g id="node9" class="node"><title>04D21E</title>
+<ellipse cx="501.629" cy="-72" rx="47.3916" ry="18"></ellipse>
+<text text-anchor="middle" x="501.629" y="-68.3" font-family "" font-size="14.00">04D21E</text>
+</g>
+<!-- E1&#45;&gt;04D21E -->
+<g id="edge7" class="edge"><title>E1-&gt;04D21E</title>
+<path d="M384.684,-72C398.866,-72 423.15,-72 445.841,-72"></path>
+<polygon points="446.107,-74.8001 454.107,-72 446.107,-69.2001 446.107,-74.8001"></polygon>
+</g>
+<!-- F4D71E -->
+<g id="node10" class="node"><title>F4D71E</title>
+<ellipse cx="241.796" cy="-18" rx="46.5926" ry="18"></ellipse>
+<text text-anchor="middle" x="241.796" y="-14.3" font-family "" font-size="14.00">F4D71E</text>
+</g>
+<!-- F00D&#45;&gt;F4D71E -->
+<g id="edge9" class="edge"><title>F00D-&gt;F4D71E</title>
+<path d="M159.094,-18C167.467,-18 177.073,-18 186.687,-18"></path>
+<polygon points="186.739,-20.8001 194.739,-18 186.739,-15.2001 186.739,-20.8001"></polygon>
+</g>
+</g>
+</svg>
+
+</section><section id="patricia-trie-1" class="slide level2">
+<h1>Patricia Trie</h1>
+<pre class="haskell"><code>data Node
+  = Branch [Patricia] ByteString
+  | Shortcut [Word4] (Either ByteString Patricia)
+  | Empty
+
+lookup :: Node -&gt; Key -&gt; ByteString
+lookup (Shortcut prefix result) key = 
+  case (stripPrefix prefix key, result) of
+    (Just [], Right value) -&gt; value
+    (Just remaining, Left ref) -&gt; lookup ref suffix
+    _ -&gt; BS.empty
+-- other cases stay the same</code></pre>
+</section></section>
+<section><section id="merkle-trees" class="titleslide slide level1"><h1>Merkle Trees</h1></section><section id="intuition" class="slide level2">
+<h1>Intuition</h1>
+<blockquote>
+<p>[...] a hash tree or Merkle tree is a tree in which every non-leaf node is labelled with the hash of the labels of its children nodes. Hash trees are useful because they allow efficient and secure verification of the contents of large data structures.</p>
+</blockquote>
+<p>http://en.wikipedia.org/wiki/Merkle_tree</p>
+</section><section id="merkle-tree" class="slide level2">
+<h1>Merkle Tree</h1>
+<pre class="haskell"><code>newtype Hash = Hash ByteString
+
+data Tree
+  = Branch [Hash] ByteString
+  | Shortcut [Word4] (Either ByteString Hash)
+  | Empty
+
+lookup :: Hash -&gt; Key -&gt; Value
+lookup hash key = undefined -- ??? </code></pre>
+</section><section id="monadic-state" class="slide level2">
+<h1>Monadic State</h1>
+<pre class="haskell"><code>class Monad m =&gt; DB m where
+  getDB :: Hash -&gt; m Node
+  putDB :: Hash -&gt; Node -&gt; m ()</code></pre>
+<div class="fragment">
+<pre class="haskell"><code>instance DB (State (Hash -&gt; Node)) where
+  getDB hash = do
+    state &lt;- get
+    return $ state hash
+  putDB hash node = do
+    state &lt;- get
+    set $ \hash&#39; -&gt;
+      if (hash&#39; == hash) then node
+      else state hash&#39;</code></pre>
+</div>
+</section><section id="lookup" class="slide level2">
+<h1>Lookup</h1>
+<pre class="haskell"><code>lookup :: DB db =&gt; Hash -&gt; Key -&gt; db ByteString
+lookup root key = getDB root &gt;&gt;= getVal
+  where
+    getVal Empty = return BS.empty
+    getVal (Shortcut prefix result) = 
+      case (stripPrefix prefix key, result) of
+        (Just [], Right value) -&gt; return value
+        (Just remaining, Left ref) -&gt; lookup ref suffix
+        _ -&gt; return BS.empty
+    getVal (Branch children val) = case key of
+      [] -&gt; return val
+      (char:rest) -&gt; 
+        let ref = children !! fromIntegral char
+        in lookup ref rest</code></pre>
+</section><section id="payoff" class="slide level2">
+<h1>Payoff</h1>
+<ul>
+<li class="fragment">Association List</li>
+<li class="fragment"><code>Data.Map</code></li>
+<li class="fragment">LevelDB</li>
+<li class="fragment">Network RPC</li>
+<li class="fragment">Custom error handling</li>
+</ul>
+</section></section>
+<section><section id="generalizing" class="titleslide slide level1"><h1>Generalizing</h1></section><section id="multi-param-class" class="slide level2">
+<h1>Multi-Param Class</h1>
+<pre class="haskell"><code>class Monad (m k v) =&gt; DB m k v where
+  getDB :: k -&gt; m k v v
+  putDB :: k -&gt; v -&gt; m k v ()</code></pre>
+<ul>
+<li class="fragment"><code>MultiParamTypeClasses</code></li>
+<li class="fragment"><code>FlexibleContexts</code></li>
+<li class="fragment"><code>ConstraintKinds</code></li>
+<li class="fragment">...</li>
+</ul>
+</section><section id="language-note" class="slide level2">
+<h1>Language Note</h1>
+<blockquote>
+<p>I advocate a direct programming style in Haskell. Advanced type system features have their place, but plain old functions go a long, long way. Functions are the masters of reuse: when you use an advanced feature, you need a yet more advanced feature to abstract over it [...] but all you need to abstract over a function is another function.</p>
+</blockquote>
+<p>https://lukepalmer.wordpress.com/2010/01/24/haskell-antipattern-existential-typeclass/</p>
+</section><section id="free-monad" class="slide level2">
+<h1>Free Monad</h1>
+<pre class="haskell"><code>data Free f a 
+  = Pure a
+  | Free (f (Free f a))
+
+instance Functor f =&gt; Monad (Free f) where
+  return = Pure
+  Pure a &gt;&gt;= f = f a
+  Free m &gt;&gt;= f = Free ((&gt;&gt;= f) &lt;$&gt; m)</code></pre>
+</section><section id="implementation" class="slide level2">
+<h1>Implementation</h1>
+<pre class="haskell"><code>data DBOps k v next
+  = Put k v next
+  | Get k (v -&gt; next)
+  deriving (Functor)</code></pre>
+<div class="fragment">
+<pre class="haskell"><code>newtype DB k v a = DB (Free (KV k v) a)
+  deriving (Functor, Applicative, Monad)
+
+getDB :: k -&gt; v -&gt; DB k v ()
+getDB k v = DB $ liftF $ Put k v ()
+
+putDB :: k -&gt; DB k v v
+putDB k = DB $ liftF $ Get k id</code></pre>
+</div>
+</section><section id="lookup-1" class="slide level2">
+<h1>Lookup</h1>
+<pre class="haskell"><code>lookup :: DB db =&gt; Hash -&gt; Key -&gt; db ByteString
+lookup root key = getDB root &gt;&gt;= getVal
+  where
+    getVal Empty = return BS.empty
+    getVal (Shortcut prefix result) = 
+      case (stripPrefix prefix key, result) of
+        (Just [], Right value) -&gt; return value
+        (Just remaining, Left ref) -&gt; lookup ref suffix
+        _ -&gt; return BS.empty
+    getVal (Branch children val) = case key of
+      [] -&gt; return val
+      (char:rest) -&gt; 
+        let ref = children !! fromIntegral char
+        in lookup ref rest</code></pre>
+</section><section id="interpreter" class="slide level2">
+<h1>Interpreter</h1>
+<pre><code>runDB :: Monad m           
+    =&gt; (k -&gt; v -&gt; m ()) -- put
+    -&gt; (k -&gt; m v) -- get
+    -&gt; DB k v a
+    -&gt; m a
+runDB put get (DB ops) = go ops
+  where
+    go (Pure a) = return a 
+    go (Free (Put k v next)) = put k v &gt;&gt; go next
+    go (Free (Get k handler)) = get k &gt;&gt;= go . handler</code></pre>
+</section><section id="more-freedom" class="slide level2">
+<h1>More Freedom</h1>
+<ul>
+<li><p>Why Free Monads Matter</p>
+<p>http://www.haskellforall.com/2012/06/you-could-have-invented-free-monads.html</p></li>
+<li><p>Typed Tagless Final Interpreters</p>
+<p>http://okmij.org/ftp/tagless-final/course/lecture.pdf</p></li>
+</ul>
+</section><section id="leftovers" class="slide level2">
+<h1>Leftovers</h1>
+<svg width="437pt" height="188pt" viewBox="0.00 0.00 436.50 188.00" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
+<g id="graph0" class="graph" transform="scale(1 1) rotate(0) translate(4 184)">
+<title>merkle</title>
+<polygon points="-4,4 -4,-184 432.5,-184 432.5,4 -4,4"></polygon>
+<!-- H0 -->
+<g id="node1" class="node"><title>H0</title>
+<polygon points="52.5,-108 16.5,-108 16.5,-72 52.5,-72 52.5,-108"></polygon>
+<text text-anchor="middle" x="34.5" y="-86.3" font-family "" font-size="14.00">H0</text>
+</g>
+<!-- FUUUUUUUUUUUUUUUUUUUu -->
+<g id="node2" class="node"><title>FUUUUUUUUUUUUUUUUUUUu</title>
+<polygon points="320,-180 87,-180 87,-144 320,-144 320,-180"></polygon>
+<text text-anchor="middle" x="203.5" y="-158.3" font-family "" font-size="14.00">FUUUUUUUUUUUUUUUUUUUu</text>
+</g>
+<!-- H1 -->
+<g id="node3" class="node"><title>H1</title>
+<polygon points="374.5,-180 338.5,-180 338.5,-144 374.5,-144 374.5,-180"></polygon>
+<text text-anchor="middle" x="356.5" y="-158.3" font-family "" font-size="14.00">H1</text>
+</g>
+<!-- cup -->
+<g id="node6" class="node"><title>cup</title>
+<text text-anchor="middle" x="356.5" y="-86.3" font-family "" font-size="14.00">cup</text>
+</g>
+<!-- H1&#45;&gt;cup -->
+<g id="edge2" class="edge"><title>H1-&gt;cup</title>
+<path d="M356.5,-143.697C356.5,-135.389 356.5,-125.277 356.5,-116.141"></path>
+<polygon points="359.3,-116.104 356.5,-108.104 353.7,-116.104 359.3,-116.104"></polygon>
+</g>
+<!-- H2 -->
+<g id="node4" class="node"><title>H2</title>
+<polygon points="428.5,-180 392.5,-180 392.5,-144 428.5,-144 428.5,-180"></polygon>
+<text text-anchor="middle" x="410.5" y="-158.3" font-family "" font-size="14.00">H2</text>
+</g>
+<!-- &lt;root&gt; -->
+<g id="node5" class="node"><title>&lt;root&gt;</title>
+<text text-anchor="middle" x="34.5" y="-158.3" font-family "" font-size="14.00">&lt;root&gt;</text>
+</g>
+<!-- &lt;root&gt;&#45;&gt;H0 -->
+<g id="edge1" class="edge"><title>&lt;root&gt;-&gt;H0</title>
+<path d="M34.5,-143.697C34.5,-135.389 34.5,-125.277 34.5,-116.141"></path>
+<polygon points="37.3001,-116.104 34.5,-108.104 31.7001,-116.104 37.3001,-116.104"></polygon>
+</g>
+<!-- C -->
+<g id="node7" class="node"><title>C</title>
+<text text-anchor="middle" x="356.5" y="-14.3" font-family "" font-size="14.00">C</text>
+</g>
+<!-- cup&#45;&gt;C -->
+<g id="edge3" class="edge"><title>cup-&gt;C</title>
+<path d="M356.5,-71.6966C356.5,-63.3893 356.5,-53.2771 356.5,-44.1407"></path>
+<polygon points="359.3,-44.1043 356.5,-36.1043 353.7,-44.1044 359.3,-44.1043"></polygon>
+</g>
+</g>
+</svg>
+
 </section></section>
     </div>
   </div>
@@ -70,8 +634,8 @@ code > span.er { color: #ff0000; font-weight: bold; }
         progress: true,
         history: true,
         center: true,
-        theme: Reveal.getQueryHash().theme, // available themes are in /css/theme
-        transition: Reveal.getQueryHash().transition || 'default', // default/cube/page/concave/zoom/linear/fade/none
+        theme: 'moon', // available themes are in /css/theme
+        transition: 'slide', // default/cube/page/concave/zoom/linear/fade/none
 
         // Optional libraries used to extend on reveal.js
         dependencies: [
